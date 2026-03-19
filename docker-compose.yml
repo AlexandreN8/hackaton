@@ -1,0 +1,95 @@
+version: "3.9"
+
+services:
+
+# Base de données 
+  postgres:
+    image: postgres:16-alpine
+    container_name: hackathon_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hackathon}
+      POSTGRES_USER: ${POSTGRES_USER:-hackathon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hackathon}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./services/postgres/migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hackathon}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hackathon_net
+
+  init:
+    build: ./services/backend
+    container_name: hackathon_init
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hackathon}:${POSTGRES_PASSWORD:-hackathon}@postgres:5432/${POSTGRES_DB:-hackathon}
+    command: ["sh", "-c", "python -m app.init_db && python -m app.compute_workload"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hackathon_net
+    volumes:
+      - ./services/backend:/app
+      - ./data/workload_2024.csv:/workload_2024.csv:ro
+
+# Application (API + calculateur)
+  backend:
+    build: ./services/backend
+    container_name: hackathon_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hackathon}:${POSTGRES_PASSWORD:-hackathon}@postgres:5432/${POSTGRES_DB:-hackathon}
+      LLM_API_KEY: ${LLM_API_KEY:???}
+      LLM_MODEL: ${LLM_MODEL:???}
+      AI_URL: http://ai:8001
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hackathon_net
+    volumes:
+      - ./services/backend:/app
+
+# Interface utilisateur
+  frontend:
+    build: ./services/frontend
+    container_name: hackathon_frontend
+    restart: unless-stopped
+    environment:
+      API_URL: http://backend:8000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    networks:
+      - hackathon_net
+
+# Service d'IA (LLM)
+  ai:
+    build: ./services/ai
+    container_name: hackathon_ai
+    restart: unless-stopped
+    environment:
+      LLM_API_KEY: ${LLM_API_KEY:???}
+      LLM_MODEL: ${LLM_MODEL:???}
+    ports:
+      - "8001:8001"
+    networks:
+      - hackathon_net
+
+volumes:
+  postgres_data:
+
+networks:
+  hackathon_net:
+    driver: bridge
