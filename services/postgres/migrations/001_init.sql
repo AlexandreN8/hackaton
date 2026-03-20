@@ -37,19 +37,6 @@ CREATE TABLE IF NOT EXISTS mix_electrique (
 );
 
 -- ============================================================
--- TABLE : workload_data
--- 8760 lignes — une par heure sur 1 an
--- ============================================================
-CREATE TABLE IF NOT EXISTS workload_data (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    timestamp_heure TIMESTAMPTZ NOT NULL,
-    etat            VARCHAR(20) NOT NULL,
-    p_it_kw         NUMERIC(10,2) NOT NULL,
-    source          VARCHAR(20) DEFAULT 'simulation',
-    created_at      TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ============================================================
 -- TABLE : processed_metrics
 -- Résultats calculés — une ligne par heure × techno × mix
 -- ============================================================
@@ -83,3 +70,84 @@ CREATE INDEX IF NOT EXISTS idx_processed_timestamp
 
 CREATE INDEX IF NOT EXISTS idx_workload_timestamp
     ON workload_data(timestamp_heure);
+
+-- Mesures brutes capteurs (archivage)
+CREATE TABLE IF NOT EXISTS sensors_raw (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    timestamp_heure TIMESTAMPTZ NOT NULL,
+    etat            VARCHAR(20) NOT NULL,
+    p_it_kw         NUMERIC(10,2) NOT NULL,
+    source          VARCHAR(20) DEFAULT 'simulation',
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Résultats calculés sur mesures réelles
+CREATE TABLE IF NOT EXISTS processed_rt (
+    id                      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    timestamp_heure         TIMESTAMPTZ NOT NULL,
+    techno                  VARCHAR(20) NOT NULL,
+    mix_scenario            VARCHAR(50) NOT NULL,
+    etat                    VARCHAR(20) NOT NULL,
+    p_it_kw                 NUMERIC(10,2) NOT NULL,
+    pue_utilise             NUMERIC(5,3) NOT NULL,
+    co2_kwh_utilise         NUMERIC(6,1) NOT NULL,
+    prix_kwh                NUMERIC(6,4) NOT NULL DEFAULT 0.15,
+    e_totale_kw             NUMERIC(10,3) NOT NULL,
+    e_refroidissement_kw    NUMERIC(10,3) NOT NULL,
+    e_it_pure_kw            NUMERIC(10,3) NOT NULL,
+    eau_annuelle_m3         NUMERIC(10,2),
+    co2e_kg                 NUMERIC(10,3) NOT NULL,
+    nb_racks                INTEGER NOT NULL,
+    empreinte_m2            NUMERIC(8,2) NOT NULL,
+    perimetre_inclus        TEXT,
+    hypotheses              JSONB,
+    created_at              TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Résultats calculés sur mesures prédites
+CREATE TABLE IF NOT EXISTS processed_predicted (
+    id                      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    timestamp_heure         TIMESTAMPTZ NOT NULL,
+    techno                  VARCHAR(20) NOT NULL,
+    mix_scenario            VARCHAR(50) NOT NULL,
+    etat                    VARCHAR(20) NOT NULL,
+    p_it_kw                 NUMERIC(10,2) NOT NULL,
+    pue_utilise             NUMERIC(5,3) NOT NULL,
+    co2_kwh_utilise         NUMERIC(6,1) NOT NULL,
+    prix_kwh                NUMERIC(6,4) NOT NULL DEFAULT 0.15,
+    e_totale_kw             NUMERIC(10,3) NOT NULL,
+    e_refroidissement_kw    NUMERIC(10,3) NOT NULL,
+    e_it_pure_kw            NUMERIC(10,3) NOT NULL,
+    eau_annuelle_m3         NUMERIC(10,2),
+    co2e_kg                 NUMERIC(10,3) NOT NULL,
+    nb_racks                INTEGER NOT NULL,
+    empreinte_m2            NUMERIC(8,2) NOT NULL,
+    perimetre_inclus        TEXT,
+    hypotheses              JSONB,
+    created_at              TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Calculs on-demand utilisateur (sliders)
+CREATE TABLE IF NOT EXISTS user_calculation (
+    id                      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    techno                  VARCHAR(20) NOT NULL,
+    mix_scenario            VARCHAR(50) NOT NULL,
+    p_it_kw                 NUMERIC(10,2) NOT NULL,
+    pue_utilise             NUMERIC(5,3) NOT NULL,
+    co2_kwh_utilise         NUMERIC(6,1) NOT NULL,
+    prix_kwh                NUMERIC(6,4) NOT NULL DEFAULT 0.15,
+    e_totale_kw             NUMERIC(10,3) NOT NULL,
+    e_refroidissement_kw    NUMERIC(10,3) NOT NULL,
+    e_it_pure_kw            NUMERIC(10,3) NOT NULL,
+    eau_annuelle_m3         NUMERIC(10,2),
+    co2e_kg                 NUMERIC(10,3) NOT NULL,
+    nb_racks                INTEGER NOT NULL,
+    empreinte_m2            NUMERIC(8,2) NOT NULL,
+    perimetre_inclus        TEXT,
+    hypotheses              JSONB,
+    created_at              TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_processed_rt_ts     ON processed_rt(timestamp_heure DESC);
+CREATE INDEX IF NOT EXISTS idx_processed_pred_ts   ON processed_predicted(timestamp_heure DESC);
+CREATE INDEX IF NOT EXISTS idx_sensors_raw_ts      ON sensors_raw(timestamp_heure DESC);

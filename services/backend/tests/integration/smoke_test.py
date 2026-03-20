@@ -1,4 +1,4 @@
-# Test d'intégration — valide la chaîne complète DB => calculator.
+# Test d'intégration — valide la chaîne complète DB → calculator.
 # Nécessite que Docker soit lancé (docker compose up).
 
 import os

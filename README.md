@@ -6,7 +6,7 @@ Comparatif objectivé des technologies de refroidissement datacenter IA.
 
 - **Backend** : FastAPI + PostgreSQL
 - **Calcul** : bloc métier Python pur (calculator.py)
-- **IA** : service Anthropic streaming
+- **IA** : à venir
 - **Frontend** : à venir
 
 ## Démarrage
@@ -19,13 +19,14 @@ docker compose up --build
 
 ## Endpoints
 
-| Route | Description |
-|---|---|
-| `GET /health` | Healthcheck |
-| `GET /referentiel` | Technos et mix disponibles |
-| `POST /calculate` | Lance un calcul comparatif |
-| `GET /history` | Historique des calculs |
+| Route               | Description                    |
+| ------------------- | ------------------------------ |
+| `GET /health`       | Healthcheck                    |
+| `GET /referentiel`  | Technos et mix disponibles     |
+| `POST /calculate`   | Lance un calcul comparatif     |
+| `GET /history`      | Historique des calculs         |
 | `POST /stream-reco` | Recommandation IA en streaming |
+| `/docs`             | Swagger                        |
 
 ## Tests
 

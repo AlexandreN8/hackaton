@@ -83,28 +83,6 @@ def load_mix(cur):
     print(f"  {len(MIX)} mix insérés.")
 
 
-def load_workload(cur):
-    csv_path = "/workload_2024.csv"
-    if not os.path.exists(csv_path):
-        csv_path = "workload_2024.csv"
-    if not os.path.exists(csv_path):
-        print("  WARN : workload_2024.csv introuvable, skip.")
-        return
-
-    print(f"Chargement workload depuis {csv_path}...")
-    cur.execute("DELETE FROM workload_data")
-    rows = []
-    with open(csv_path, newline="", encoding="utf-8") as f:
-        for row in csv.DictReader(f):
-            rows.append((row["timestamp_heure"], row["etat"], float(row["p_it_kw"]), row["source"]))
-
-    execute_values(cur, """
-        INSERT INTO workload_data (timestamp_heure, etat, p_it_kw, source)
-        VALUES %s
-    """, rows, page_size=500)
-    print(f"  {len(rows)} lignes workload insérées.")
-
-
 def verify(cur):
     print("\n=== Vérification ===")
     cur.execute("SELECT techno, pue_typ, wue FROM referentiel_pue ORDER BY techno")
@@ -123,7 +101,6 @@ if __name__ == "__main__":
     cur  = conn.cursor()
     load_referentiel(cur)
     load_mix(cur)
-    load_workload(cur)
     verify(cur)
     conn.commit()
     cur.close()

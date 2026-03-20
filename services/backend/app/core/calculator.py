@@ -59,7 +59,7 @@ class ParamsScenario:
 
 @dataclass
 class ResultatCalculateur:
-    # Ensemble des mesures pour une techno * un mix.
+    # Ensemble des mesures pour une techno × un mix.
     techno: str
     mix_scenario: str
     p_it_kw: float
@@ -106,7 +106,7 @@ def calc_e_refroidissement(p_it_kw: float, techno: ParamsTechno) -> MesureTracee
 
 
 def calc_e_it_pure(p_it_kw: float) -> MesureTracee:
-    # P_it est identique pour toutes les technos 
+    # P_it est identique pour toutes les technos — c'est la règle de comparaison du sujet.
     return MesureTracee(
         valeur=round(p_it_kw, 3),
         unite="kW",
@@ -257,7 +257,7 @@ def calculer_comparatif(
     mix_list: list[ParamsMix],
 ) -> list[ResultatCalculateur]:
     # Lance le calcul pour toutes les combinaisons techno × mix.
-    # P_it est identique pour toutes 
+    # P_it est identique pour toutes — règle de comparaison obligatoire du sujet.
     techno_ref = next((t for t in technos if t.techno == "AC"), None)
     return [
         calculer_scenario(scenario_name, params, techno, mix,

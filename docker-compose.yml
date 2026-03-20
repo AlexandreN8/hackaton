@@ -1,6 +1,36 @@
-version: "3.9"
-
 services:
+
+# Message broker services
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: hackathon_zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - hackathon_net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: hackathon_kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks:
+      - hackathon_net
 
 # Base de données 
   postgres:
@@ -30,7 +60,7 @@ services:
     restart: "no"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-hackathon}:${POSTGRES_PASSWORD:-hackathon}@postgres:5432/${POSTGRES_DB:-hackathon}
-    command: ["sh", "-c", "python -m app.init_db && python -m app.compute_workload"]
+    command: ["python", "-m", "app.init_db"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,7 +77,8 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-hackathon}:${POSTGRES_PASSWORD:-hackathon}@postgres:5432/${POSTGRES_DB:-hackathon}
-      LLM_API_KEY: ${LLM_API_KEY:???}
+      KAFKA_BOOTSTRAP: kafka:29092
+      LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:???}
       AI_URL: http://ai:8001
     ports:
@@ -55,10 +86,45 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
     networks:
       - hackathon_net
     volumes:
       - ./services/backend:/app
+
+  consumer:
+    build: ./services/backend
+    container_name: hackathon_consumer
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hackathon}:${POSTGRES_PASSWORD:-hackathon}@postgres:5432/${POSTGRES_DB:-hackathon}
+      KAFKA_BOOTSTRAP: kafka:29092
+    command: ["python", "-m", "app.kafka_consumer"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - hackathon_net
+    volumes:
+      - ./services/backend:/app
+
+  producer:
+    build: ./services/producer
+    container_name: hackathon_producer
+    restart: unless-stopped
+    environment:
+      KAFKA_BOOTSTRAP: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - hackathon_net
+    volumes:
+      - ./services/producer:/app
+      - ./data/workload_2024.csv:/workload_2024.csv:ro
 
 # Interface utilisateur
   frontend:
@@ -80,8 +146,8 @@ services:
     container_name: hackathon_ai
     restart: unless-stopped
     environment:
-      LLM_API_KEY: ${LLM_API_KEY:???}
-      LLM_MODEL: ${LLM_MODEL:???}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
     ports:
       - "8001:8001"
     networks:
