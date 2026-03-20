@@ -1,6 +1,31 @@
 services:
 
 # Message broker services
+  kafka-init:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: hackathon_kafka_init
+    restart: "no"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - hackathon_net
+    command: >
+      bash -c "
+        kafka-topics --create --if-not-exists
+          --bootstrap-server kafka:29092
+          --topic sensors.raw
+          --partitions 1
+          --replication-factor 1 &&
+        kafka-topics --create --if-not-exists
+          --bootstrap-server kafka:29092
+          --topic sensors.predicted
+          --partitions 1
+          --replication-factor 1 &&
+        echo 'Topics créés :' &&
+        kafka-topics --list --bootstrap-server kafka:29092
+      "
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: hackathon_zookeeper
@@ -78,9 +103,6 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-hackathon}:${POSTGRES_PASSWORD:-hackathon}@postgres:5432/${POSTGRES_DB:-hackathon}
       KAFKA_BOOTSTRAP: kafka:29092
-      LLM_API_KEY: ${LLM_API_KEY:-}
-      LLM_MODEL: ${LLM_MODEL:???}
-      AI_URL: http://ai:8001
     ports:
       - "8000:8000"
     depends_on:
@@ -124,7 +146,7 @@ services:
       - hackathon_net
     volumes:
       - ./services/producer:/app
-      - ./data/workload_2024.csv:/workload_2024.csv:ro
+      - ./data/dataset_ia_1_semaine.jsonl:/dataset.jsonl:ro
 
 # Interface utilisateur
   frontend:
@@ -145,9 +167,6 @@ services:
     build: ./services/ai
     container_name: hackathon_ai
     restart: unless-stopped
-    environment:
-      LLM_API_KEY: ${LLM_API_KEY:-}
-      LLM_MODEL: ${LLM_MODEL:-}
     ports:
       - "8001:8001"
     networks:

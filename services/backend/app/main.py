@@ -11,7 +11,18 @@ import httpx
 
 from app.core.calculator import ParamsTechno, ParamsMix, ParamsScenario, calculer_comparatif
 
-app = FastAPI(title="Hackathon Cisco — Comparatif IC vs AC")
+from fastapi.responses import JSONResponse
+import json as _json
+
+class UTF8JSONResponse(JSONResponse):
+    media_type = "application/json; charset=utf-8"
+    def render(self, content) -> bytes:
+        return _json.dumps(content, ensure_ascii=False, allow_nan=False).encode("utf-8")
+
+app = FastAPI(
+    title="Hackathon Cisco — Comparatif IC vs AC",
+    default_response_class=UTF8JSONResponse,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,6 +52,7 @@ def fetch_technos(cur) -> list[ParamsTechno]:
             max_rack_density_kw=int(r["max_rack_density_kw"]),
             m2_par_rack=float(r["m2_par_rack"]),
             perimetre=r["perimetre"], source=r["source"],
+            erf_typ=float(r["erf_typ"]) if r["erf_typ"] else 0.0,
         )
         for r in cur.fetchall()
     ]
@@ -69,7 +81,7 @@ def health():
 
 @app.get("/referentiel")
 def get_referentiel():
-    # Retourne les technos et mix disponibles — le front s'en sert pour pré-remplir les sélecteurs.
+    # Retourne technos et mix — le front s'en sert pour pré-remplir les sélecteurs.
     conn = get_db()
     cur  = conn.cursor(cursor_factory=RealDictCursor)
     technos  = fetch_technos(cur)
@@ -84,8 +96,7 @@ def get_referentiel():
 
 @app.post("/calculate")
 def calculate(req: CalculateRequest):
-    # Mode sélecteur : l'utilisateur choisit p_it_kw et les technos/mix à comparer.
-    # Calcule à la demande et stocke dans processed_metrics pour l'historique.
+    # Mode what-if sliders — calcule à la demande et stocke dans user_calculation.
     conn = get_db()
     cur  = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -107,7 +118,11 @@ def calculate(req: CalculateRequest):
 
     rows = []
     for r in resultats:
-        rows.append({
+        techno_obj = next(t for t in technos if t.techno == r.techno)
+        eau_lh          = round(req.p_it_kw * techno_obj.wue, 3)
+        eau_annuelle_m3 = round(req.p_it_kw * techno_obj.wue * 8760 / 1000, 2)
+
+        row = {
             "techno"            : r.techno,
             "mix_scenario"      : r.mix_scenario,
             "p_it_kw"           : r.p_it_kw,
@@ -121,24 +136,30 @@ def calculate(req: CalculateRequest):
             "economie_annuelle" : r.economie_annuelle.__dict__ if r.economie_annuelle else None,
             "surcout_capex"     : r.surcout_capex.__dict__ if r.surcout_capex else None,
             "roi_annees"        : r.roi_annees.__dict__ if r.roi_annees else None,
-        })
+        }
+        rows.append(row)
+
         cur.execute("""
-            INSERT INTO processed_metrics
-                (timestamp_heure, techno, mix_scenario, etat, p_it_kw,
-                 pue_utilise, co2_kwh_utilise, prix_kwh,
-                 e_totale_kw, e_refroidissement_kw, e_it_pure_kw,
-                 eau_annuelle_m3, co2e_kg, nb_racks, empreinte_m2,
-                 perimetre_inclus, hypotheses)
-            VALUES (NOW(), %s, %s, 'user', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO user_calculation (
+                techno, mix_scenario, p_it_kw,
+                pue_calcule, wue_calcule,
+                e_totale_kw, e_refroidissement_kw, e_it_pure_kw,
+                eau_lh, eau_annuelle_m3, co2e_kg,
+                nb_racks, empreinte_m2,
+                roi_annees, economie_annuelle_eur,
+                erf_calcule, perimetre_inclus, hypotheses
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, (
             r.techno, r.mix_scenario, r.p_it_kw,
-            r.e_totale.inputs["pue_typ"],
-            r.co2e_annuel.inputs["co2_kwh"],
-            req.prix_kwh,
+            r.e_totale.inputs["pue_typ"], techno_obj.wue,
             r.e_totale.valeur, r.e_refroidissement.valeur,
-            r.e_it_pure.valeur, r.eau_annuelle.valeur,
-            r.co2e_annuel.valeur, int(r.nb_racks.valeur),
-            r.empreinte_m2.valeur, r.e_totale.perimetre_inclus,
+            r.e_it_pure.valeur, eau_lh, eau_annuelle_m3,
+            r.co2e_annuel.valeur,
+            int(r.nb_racks.valeur), r.empreinte_m2.valeur,
+            r.roi_annees.valeur if r.roi_annees else None,
+            r.economie_annuelle.valeur if r.economie_annuelle else None,
+            techno_obj.erf_typ,
+            r.e_totale.perimetre_inclus,
             json.dumps({
                 "pue_source": r.e_totale.source,
                 "co2_source": r.co2e_annuel.source,
@@ -154,15 +175,18 @@ def calculate(req: CalculateRequest):
 
 @app.get("/history")
 def history(limit: int = 20):
-    # Les N derniers calculs lancés par l'utilisateur via /calculate.
+    # N derniers calculs utilisateur via les sliders.
     conn = get_db()
     cur  = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("""
         SELECT techno, mix_scenario, p_it_kw,
-               e_totale_kw, e_refroidissement_kw, co2e_kg,
-               nb_racks, empreinte_m2, created_at
-        FROM processed_metrics
-        WHERE etat = 'user'
+               pue_calcule, wue_calcule, erf_calcule,
+               e_totale_kw, e_refroidissement_kw,
+               eau_annuelle_m3, co2e_kg,
+               nb_racks, empreinte_m2,
+               roi_annees, economie_annuelle_eur,
+               created_at
+        FROM user_calculation
         ORDER BY created_at DESC
         LIMIT %s
     """, (limit,))
@@ -172,17 +196,58 @@ def history(limit: int = 20):
     return {"history": rows}
 
 
-@app.get("/workload-results")
-def workload_results(
-    technos: Optional[list[str]] = Query(default=None),
-    mix_scenarios: Optional[list[str]] = Query(default=None),
-):
-    # Résultats pré-calculés du workload annuel.
-    # Retourne la série temporelle + les totaux annuels pour les KPIs.
+@app.get("/rt/latest")
+def rt_latest():
+    # Dernière mesure par rack — polling toutes les 5s par le front.
+    # Retourne capteurs bruts + métriques calculées pour les 4 technos.
     conn = get_db()
     cur  = conn.cursor(cursor_factory=RealDictCursor)
 
-    filters = ["etat != 'user'"]
+    # Dernière mesure brute par rack
+    cur.execute("""
+        SELECT DISTINCT ON (rack_id)
+            rack_id, techno, timestamp_heure, p_it_kw,
+            cpu_usage_percent, cpu_temp_c,
+            ddr_temp_c, psu_temp_c,
+            gpu_usage_percent, gpu_temp_c,
+            hbm_temp_c, free_gpu_mem_percent,
+            room_temp_c, iteesv, source
+        FROM sensors_raw
+        ORDER BY rack_id, timestamp_heure DESC
+    """)
+    sensors = {r["rack_id"]: dict(r) for r in cur.fetchall()}
+
+    # Dernière métrique calculée par rack * techno * mix
+    cur.execute("""
+        SELECT DISTINCT ON (rack_id, techno, mix_scenario)
+            rack_id, techno, mix_scenario, timestamp_heure,
+            p_it_kw, pue_calcule, wue_calcule, erf_calcule,
+            e_totale_kw, e_refroidissement_kw, e_it_pure_kw,
+            eau_lh, eau_annuelle_m3, co2e_kg
+        FROM processed_rt
+        ORDER BY rack_id, techno, mix_scenario, timestamp_heure DESC
+    """)
+    metrics = [dict(r) for r in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+    return {"sensors": sensors, "metrics": metrics}
+
+
+@app.get("/rt/history")
+def rt_history(
+    technos: Optional[list[str]] = Query(default=None),
+    mix_scenarios: Optional[list[str]] = Query(default=None),
+    window: str = Query(default="1h", description="30m | 1h | 24h"),
+):
+    # Série temporelle pour les courbes RT.
+    windows = {"30m": "30 minutes", "1h": "1 hour", "24h": "24 hours"}
+    interval = windows.get(window, "1 hour")
+
+    conn = get_db()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
+
+    filters = [f"timestamp_heure >= NOW() - INTERVAL '{interval}'"]
     args    = []
     if technos:
         filters.append("techno = ANY(%s)")
@@ -195,45 +260,24 @@ def workload_results(
 
     cur.execute(f"""
         SELECT
-            DATE_TRUNC('hour', timestamp_heure) AS heure,
-            techno, mix_scenario, etat,
-            ROUND(AVG(p_it_kw)::numeric, 2)             AS p_it_kw,
-            ROUND(AVG(e_totale_kw)::numeric, 3)         AS e_totale_kw,
-            ROUND(AVG(e_refroidissement_kw)::numeric, 3) AS e_refroidissement_kw,
-            ROUND(AVG(e_it_pure_kw)::numeric, 3)        AS e_it_pure_kw,
-            ROUND(AVG(co2e_kg)::numeric, 4)             AS co2e_kg,
-            ROUND(AVG(eau_annuelle_m3)::numeric, 3)     AS eau_annuelle_m3,
-            AVG(nb_racks)::integer                      AS nb_racks,
-            ROUND(AVG(empreinte_m2)::numeric, 2)        AS empreinte_m2
-        FROM processed_metrics {where}
-        GROUP BY DATE_TRUNC('hour', timestamp_heure), techno, mix_scenario, etat
-        ORDER BY heure, techno, mix_scenario
+            timestamp_heure, rack_id, techno, mix_scenario,
+            p_it_kw, pue_calcule, wue_calcule, erf_calcule,
+            e_totale_kw, e_refroidissement_kw,
+            eau_lh, co2e_kg
+        FROM processed_rt
+        {where}
+        ORDER BY timestamp_heure ASC, techno, mix_scenario
     """, args)
-    serie = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(f"""
-        SELECT
-            techno, mix_scenario,
-            ROUND(SUM(co2e_kg)::numeric, 1)         AS co2e_total_tco2,
-            ROUND(SUM(eau_annuelle_m3)::numeric, 1) AS eau_total_m3,
-            ROUND(AVG(e_totale_kw)::numeric, 2)     AS e_totale_moy_kw,
-            ROUND(AVG(nb_racks))::integer           AS nb_racks,
-            ROUND(AVG(empreinte_m2)::numeric, 1)    AS empreinte_m2
-        FROM processed_metrics {where}
-        GROUP BY techno, mix_scenario
-        ORDER BY techno, mix_scenario
-    """, args)
-    kpis = [dict(r) for r in cur.fetchall()]
-
+    rows = [dict(r) for r in cur.fetchall()]
     cur.close()
     conn.close()
-    return {"serie_temporelle": serie, "kpis": kpis}
+    return {"window": window, "data": rows}
 
 
 @app.post("/stream-reco")
 async def stream_reco(req: CalculateRequest):
     # Lance le calcul puis stream la recommandation IA token par token.
-    # Le front affiche les graphiques pendant que l'IA génère le texte.
     conn = get_db()
     cur  = conn.cursor(cursor_factory=RealDictCursor)
     technos  = fetch_technos(cur)
