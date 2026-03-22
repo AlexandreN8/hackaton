@@ -12,7 +12,7 @@ from kafka.errors import NoBrokersAvailable
 KAFKA_BOOTSTRAP  = os.getenv("KAFKA_BOOTSTRAP", "localhost:9092")
 TOPIC_RAW        = "sensors.raw"
 DATASET_PATH     = os.getenv("DATASET_PATH", "/dataset.jsonl")
-SEND_INTERVAL    = float(os.getenv("SEND_INTERVAL", "5"))
+SEND_INTERVAL    = float(os.getenv("SEND_INTERVAL", "2"))
 
 
 def connect(retries=15, delay=3):

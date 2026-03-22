@@ -1,9 +1,14 @@
-FROM python:3.12-slim
-
+# Stage 1 — builder : installe node, compile le React
+FROM node:20-alpine AS builder
 WORKDIR /app
-
-RUN pip install --no-cache-dir aiohttp==3.9.5
-
+COPY package.json .
+RUN npm install
 COPY . .
+RUN npm run build      
 
-CMD ["python", "-m", "http.server", "8080"]
+# Stage 2 — prod : image légère nginx
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 8080
+CMD ["nginx", "-g", "daemon off;"]
