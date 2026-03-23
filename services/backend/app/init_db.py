@@ -25,18 +25,18 @@ TECHNOS = [
         "source": "Green Revolution Cooling 2023 ; Uptime Institute 2022 ; Nvidia DGX H100 specs",
     },
     {
-        "techno": "RDHx", "pue_typ": 1.20, "pue_min": 1.15, "pue_max": 1.35,
-        "wue": 0.8, "cooling_fraction": 0.17, "capex_index": 1.4,
-        "max_rack_density_kw": 40, "m2_par_rack": 2.0, "erf_typ": 0.20,
+        "techno": "RDHx", "pue_typ": 1.25, "pue_min": 1.15, "pue_max": 1.35,
+        "wue": 1, "cooling_fraction": 0.2, "capex_index": 1.1,
+        "max_rack_density_kw": 45, "m2_par_rack": 2.0, "erf_typ": 0.20,
         "perimetre": "Serveurs + Porte arrière refroidie eau + Chiller partiel",
-        "source": "ASHRAE TC9.9 (2021) / Schneider Electric White Paper 253 (2022)",
+        "source": "ASHRAE TC9.9 (2021) ; nVent / Munters Specs",
     },
     {
-        "techno": "DLC", "pue_typ": 1.10, "pue_min": 1.05, "pue_max": 1.20,
-        "wue": 0.3, "cooling_fraction": 0.09, "capex_index": 1.9,
-        "max_rack_density_kw": 100, "m2_par_rack": 2.0, "erf_typ": 0.35,
+        "techno": "DLC", "pue_typ": 1.15, "pue_min": 1.05, "pue_max": 1.20,
+        "wue": 0.0, "cooling_fraction": 0.1, "capex_index": 1.15,
+        "max_rack_density_kw": 80, "m2_par_rack": 2.0, "erf_typ": 0.35,
         "perimetre": "Serveurs + Plaques froides CPU/GPU + CDU + AC résiduel",
-        "source": "Nvidia DGX H100 specs (2023) / Intel IDC Cooling Study 2022",
+        "source": "Cisco UCS Cooling Specs ; CoolIT Systems ; OCP (Open Compute Project)",
     },
 ]
 MIX = [
