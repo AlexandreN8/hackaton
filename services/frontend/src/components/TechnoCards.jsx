@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { TC, LABELS, TC_BG, f } from '../constants.js'
+import { TC, LABELS, TC_BG, f, TECHNO_ORDER } from '../constants.js'
 
 const ROW_META = {
   'E totale': {
@@ -9,8 +9,8 @@ const ROW_META = {
     source: 'Uptime Institute — PUE definition v1.5',
   },
   'E refroid.': {
-    formule: 'E_refroid. = P_it × (PUE − 1) × cooling_fraction',
-    note: 'Fraction dédiée au refroidissement. cooling_fraction AC=0.37, IC=0.03.',
+    formule: 'E_refroid. = P_it × (PUE − 1)',
+    note: 'Fraction dédiée au refroidissement.',
     source: 'ASHRAE TC9.9 (2021) / Green Revolution Cooling (2023)',
   },
   'CO₂e annuel': {
@@ -37,6 +37,11 @@ const ROW_META = {
     formule: 'ROI = surcout_capex / economie_annuelle',
     note: 'Payback simple non actualisé. IC : surcout +25% CAPEX.',
     source: 'Uptime Institute Cost per kW 2023',
+  },
+  'E récupérée': {
+    formule: 'E_récup. = P_it × PUE × ERF',
+    note: 'Puissance thermique récupérable en continu (kW). Soit ~MWh/an = valeur × 8.76. IC/DLC sortent le fluide à >40°C — exploitable pour chauffage urbain ou serres.',
+    source: 'EN 50600-4-6 (2022) / Green Revolution Cooling / Google Finland DC',
   },
   'Économie': {
     formule: 'Économie = (PUE_AC − PUE_x) × P_it × 8760 × prix_kwh',
@@ -151,6 +156,7 @@ const ROWS = [
   { l: 'Nb racks',     g: r => r?.nb_racks?.valeur,          u: '',     low: true  },
   { l: 'Empreinte',    g: r => r?.empreinte_m2?.valeur,      u: 'm²',   low: true  },
   { l: 'ROI',          g: r => r?.roi_annees?.valeur,        u: 'ans',  low: true  },
+  { l: 'E récupérée',  g: r => r?.e_recuperee?.valeur,       u: 'kW',   low: false },
   { l: 'Économie',     g: r => r?.economie_annuelle?.valeur, u: '€/an', low: false },
 ]
 
@@ -195,8 +201,8 @@ export default function TechnoCards({ results, mix }) {
     )
   }
 
-  const technos = [...new Set(filtered.map(r => r.techno))]
-  const byT    = Object.fromEntries(technos.map(t => [t, filtered.find(r => r.techno === t)]))
+  const byT     = Object.fromEntries(filtered.map(r => [r.techno, r]))
+  const technos = TECHNO_ORDER.filter(t => byT[t])
   const acRef  = byT['AC'] || null
 
   return (

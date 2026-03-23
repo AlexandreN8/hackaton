@@ -18,13 +18,6 @@ TECHNOS = [
         "source": "Uptime Institute Global Survey 2023 ; Eurostat B2B 2023 ; ASHRAE TC9.9",
     },
     {
-        "techno": "IC", "pue_typ": 1.05, "pue_min": 1.02, "pue_max": 1.10,
-        "wue": 0.0, "cooling_fraction": 0.03, "capex_index": 1.25,
-        "max_rack_density_kw": 100, "m2_par_rack": 2.0, "erf_typ": 0.40,
-        "perimetre": "Serveurs (sans ventilateurs) + Pompes + CDU",
-        "source": "Green Revolution Cooling 2023 ; Uptime Institute 2022 ; Nvidia DGX H100 specs",
-    },
-    {
         "techno": "RDHx", "pue_typ": 1.25, "pue_min": 1.15, "pue_max": 1.35,
         "wue": 1, "cooling_fraction": 0.2, "capex_index": 1.1,
         "max_rack_density_kw": 45, "m2_par_rack": 2.0, "erf_typ": 0.20,
@@ -33,10 +26,17 @@ TECHNOS = [
     },
     {
         "techno": "DLC", "pue_typ": 1.15, "pue_min": 1.05, "pue_max": 1.20,
-        "wue": 0.0, "cooling_fraction": 0.1, "capex_index": 1.15,
+        "wue": 0.3, "cooling_fraction": 0.1, "capex_index": 1.15,
         "max_rack_density_kw": 80, "m2_par_rack": 2.0, "erf_typ": 0.35,
         "perimetre": "Serveurs + Plaques froides CPU/GPU + CDU + AC résiduel",
         "source": "Cisco UCS Cooling Specs ; CoolIT Systems ; OCP (Open Compute Project)",
+    },
+    {
+        "techno": "IC", "pue_typ": 1.05, "pue_min": 1.02, "pue_max": 1.10,
+        "wue": 0.0, "cooling_fraction": 0.03, "capex_index": 1.25,
+        "max_rack_density_kw": 100, "m2_par_rack": 2.0, "erf_typ": 0.40,
+        "perimetre": "Serveurs (sans ventilateurs) + Pompes + CDU",
+        "source": "Green Revolution Cooling 2023 ; Uptime Institute 2022 ; Nvidia DGX H100 specs",
     },
 ]
 MIX = [

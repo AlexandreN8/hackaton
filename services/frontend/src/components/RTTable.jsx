@@ -1,5 +1,5 @@
 import React from 'react'
-import { TC, f } from '../constants.js'
+import { TC, f, TECHNO_ORDER } from '../constants.js'
 
 const SENSOR_ROWS = [
   { l: 'Densité (kW)',  g: r => r.p_it_kw,            field: 'p_it_kw',           low: false },
@@ -73,7 +73,8 @@ function CalcRow({ row, racks, gM }) {
 export default function RTTable({ rtData, mix, onSelectMetric, selectedMetric }) {
   if (!rtData?.sensors) return <div className="empty">En attente de données capteurs...</div>
 
-  const racks = Object.values(rtData.sensors)
+  const allRacks = Object.values(rtData.sensors)
+  const racks = TECHNO_ORDER.map(t => allRacks.find(r => r.techno === t)).filter(Boolean)
   const gM = (rack, field) =>
     rtData.metrics?.find(x => x.techno === rack.techno && x.mix_scenario === mix)?.[field]
 

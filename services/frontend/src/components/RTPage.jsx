@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { TC, f } from '../constants.js'
+import { TC, f, TECHNO_ORDER } from '../constants.js'
 import RTTable from './RTTable.jsx'
 import MetricDrawer from './MetricDrawer.jsx'
 import { useRTHistory } from '../hooks/useApi.js'
@@ -45,7 +45,8 @@ function PowerChart({ rackId, history, color }) {
       x: { display: false },
       y: {
         display: true,
-        ticks: { color: 'var(--text3)', font: { size: 9 }, maxTicksLimit: 3, callback: v => `${f(v,0)}kW` },
+        min: 0,
+        ticks: { color: 'var(--text3)', font: { size: 9 }, maxTicksLimit: 2, callback: v => v === 0 ? '' : `${f(v,0)}kW` },
         grid: { color: 'rgba(0,0,0,0.04)' },
         border: { display: false },
       }
@@ -53,7 +54,7 @@ function PowerChart({ rackId, history, color }) {
   }
 
   return (
-    <div style={{ height: '48px', marginTop: '8px', position: 'relative', width: '100%', overflow: 'hidden' }}>
+    <div className="kpi-power-chart" style={{ height: '48px', marginTop: '8px', position: 'relative', width: '100%', overflow: 'hidden' }}>
       <Line data={data} options={options} />
     </div>
   )
@@ -93,7 +94,8 @@ export default function RTPage({ rtData, referentiel }) {
     if (mixList.length && !mix) setMix(mixList[0].scenario)
   }, [mixList])
 
-  const sensors = rtData?.sensors ? Object.values(rtData.sensors) : []
+  const allSensors = rtData?.sensors ? Object.values(rtData.sensors) : []
+  const sensors = TECHNO_ORDER.map(t => allSensors.find(s => s.techno === t)).filter(Boolean)
   const nPts = Object.values(history)[0]?.p_it_kw?.length || 0
 
   return (

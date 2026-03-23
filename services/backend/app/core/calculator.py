@@ -71,6 +71,7 @@ class ResultatCalculateur:
     co2e_annuel: MesureTracee
     nb_racks: MesureTracee
     empreinte_m2: MesureTracee
+    e_recuperee: Optional[MesureTracee] = None
     economie_annuelle: Optional[MesureTracee] = None
     surcout_capex: Optional[MesureTracee] = None
     roi_annees: Optional[MesureTracee] = None
@@ -93,16 +94,32 @@ def calc_e_totale(p_it_kw: float, techno: ParamsTechno) -> MesureTracee:
 
 
 def calc_e_refroidissement(p_it_kw: float, techno: ParamsTechno) -> MesureTracee:
-    valeur = round(p_it_kw * (techno.pue_typ - 1) * techno.cooling_fraction, 3)
+    valeur = round(p_it_kw * (techno.pue_typ - 1), 3)
     return MesureTracee(
         valeur=valeur,
         unite="kW",
-        formule="P_it × (PUE − 1) × cooling_fraction",
-        inputs={"p_it_kw": p_it_kw, "pue_typ": techno.pue_typ, "cooling_fraction": techno.cooling_fraction},
+        formule="P_it × (PUE − 1)",
+        inputs={"p_it_kw": p_it_kw, "pue_typ": techno.pue_typ},
         perimetre_inclus="AC : Chiller + ventilation + ventilateurs rack. IC : Pompes + CDU.",
         perimetre_exclus="UPS, éclairage, sécurité physique",
-        hypothese=f"cooling_fraction={techno.cooling_fraction} — ASHRAE TC9.9 (AC) / GRC (IC).",
+        hypothese="Énergie de refroidissement = E_totale - E_IT. PUE constant.",
         source="ASHRAE TC9.9 (2021) / Green Revolution Cooling (2023)",
+    )
+
+
+def calc_e_recuperee(p_it_kw: float, techno: ParamsTechno, heures: int = 8760) -> MesureTracee:
+    # En kW instantané ET en MWh/an — on stocke les deux dans inputs
+    kw   = round(p_it_kw * techno.pue_typ * techno.erf_typ, 2)
+    mwh  = round(kw * heures / 1000, 1)
+    return MesureTracee(
+        valeur=kw,
+        unite="kW",
+        formule="P_it × PUE × ERF",
+        inputs={"p_it_kw": p_it_kw, "pue_typ": techno.pue_typ, "erf_typ": techno.erf_typ, "kw": kw, "mwh_an": mwh},
+        perimetre_inclus="Chaleur fatale récupérable — chauffage bâtiments, réseaux urbains, serres",
+        perimetre_exclus="Chaleur dissipée dans l'air non captée, pertes transport",
+        hypothese=f"ERF={techno.erf_typ} — fraction de E_totale réutilisable à température exploitable (>40°C).",
+        source="EN 50600-4-6 (2022) / Green Revolution Cooling / Google Finland DC",
     )
 
 
@@ -228,6 +245,7 @@ def calculer_scenario(
 ) -> ResultatCalculateur:
     # ROI et économie seulement si on compare à une référence AC.
     nb_racks_res = calc_nb_racks(params.p_it_kw, techno)
+    e_recuperee = calc_e_recuperee(params.p_it_kw, techno, params.heures_annuelles)
     economie = surcout = roi = None
     if techno_ref and techno.techno != techno_ref.techno:
         economie = calc_economie_annuelle(params.p_it_kw, techno_ref, techno, params)
@@ -245,6 +263,7 @@ def calculer_scenario(
         co2e_annuel=calc_co2e_annuel(params.p_it_kw, techno, mix, params.heures_annuelles),
         nb_racks=nb_racks_res,
         empreinte_m2=calc_empreinte_m2(int(nb_racks_res.valeur), techno),
+        e_recuperee=e_recuperee,
         economie_annuelle=economie,
         surcout_capex=surcout,
         roi_annees=roi,
