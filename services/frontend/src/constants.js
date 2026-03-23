@@ -35,3 +35,5 @@ export const CHART_BASE = {
 
 export const f  = (v, d = 2) => v == null ? '—' : Number(v).toFixed(d)
 export const fK = v => Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + 'k' : Number(v).toFixed(0)
+
+export const TECHNO_ORDER = ['AC', 'RDHx', 'DLC', 'IC']

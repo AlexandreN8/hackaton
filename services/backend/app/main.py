@@ -133,6 +133,7 @@ def calculate(req: CalculateRequest):
             "co2e_annuel"       : r.co2e_annuel.__dict__,
             "nb_racks"          : r.nb_racks.__dict__,
             "empreinte_m2"      : r.empreinte_m2.__dict__,
+            "e_recuperee"       : r.e_recuperee.__dict__ if r.e_recuperee else None,
             "economie_annuelle" : r.economie_annuelle.__dict__ if r.economie_annuelle else None,
             "surcout_capex"     : r.surcout_capex.__dict__ if r.surcout_capex else None,
             "roi_annees"        : r.roi_annees.__dict__ if r.roi_annees else None,

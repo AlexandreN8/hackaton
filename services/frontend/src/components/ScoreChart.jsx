@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Bar } from 'react-chartjs-2'
-import { TC, CHART_BASE, f } from '../constants.js'
+import { TC, CHART_BASE, f, TECHNO_ORDER } from '../constants.js'
 
 // Profils prédéfinis 
 const ICONS = {
@@ -172,6 +172,7 @@ export default function ScoreChart({ results }) {
   const criteria   = CRITERIA_DEF.map(c => ({ ...c, wNorm: normWeights[c.key] }))
   const normalized = normalize(results, criteria)
 
+  // Calcul sur results dans l'ordre original — pas d'orderedResults
   const scores = results.map((_, i) =>
     criteria.reduce((sum, c, ci) => sum + c.wNorm * normalized[ci][i], 0)
   )

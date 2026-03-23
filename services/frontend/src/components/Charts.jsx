@@ -4,27 +4,20 @@ import {
   LineElement, PointElement, Title, Tooltip, Legend, Filler
 } from 'chart.js'
 import { Bar, Line } from 'react-chartjs-2'
-import { TC, CHART_BASE, fK, f } from '../constants.js'
+import { TC, CHART_BASE, fK, f, TECHNO_ORDER } from '../constants.js'
 
 ChartJS.register(
   CategoryScale, LinearScale, BarElement,
   LineElement, PointElement, Title, Tooltip, Legend, Filler
 )
 
-// Affiche la répartition de l'énergie (IT, refroidissement, overhead)
 export function EnergyChart({ results }) {
   const data = {
-    labels: results.map(r => r.techno),
+    labels: TECHNO_ORDER.filter(t => results.some(r => r.techno === t)),
     datasets: [
-      { label: 'E IT (kW)',      data: results.map(r => r.e_it_pure?.valeur || 0),          backgroundColor: '#60a5fa', stack: 's' },
-      { label: 'Refroid. (kW)', data: results.map(r => r.e_refroidissement?.valeur || 0),  backgroundColor: '#f59e0b', stack: 's' },
-      { 
-        label: 'Overhead',
-        // Calcul de l'énergie résiduelle (total - IT - refroidissement)
-        data: results.map(r => Math.max(0, (r.e_totale?.valeur || 0) - (r.e_it_pure?.valeur || 0) - (r.e_refroidissement?.valeur || 0))), 
-        backgroundColor: '#cbd5e1', 
-        stack: 's' 
-      },
+      { label: 'E IT (kW)',       data: TECHNO_ORDER.filter(t => results.some(r => r.techno === t)).map(t => results.find(r => r.techno === t)?.e_it_pure?.valeur || 0),          backgroundColor: '#60a5fa', stack: 's' },
+      { label: 'Refroid. (kW)',  data: TECHNO_ORDER.filter(t => results.some(r => r.techno === t)).map(t => results.find(r => r.techno === t)?.e_refroidissement?.valeur || 0),  backgroundColor: '#f59e0b', stack: 's' },
+      { label: 'E récup. (kW)',  data: TECHNO_ORDER.filter(t => results.some(r => r.techno === t)).map(t => results.find(x => x.techno === t)?.e_recuperee?.valeur || 0), backgroundColor: '#34d39980', stack: 's2' },
     ]
   }
   const options = {
@@ -38,7 +31,7 @@ export function EnergyChart({ results }) {
   return (
     <div className="chart-card fade-in">
       <div className="chart-title">Énergie par poste</div>
-      <div className="chart-sub">kW — IT / Refroidissement / Overhead</div>
+      <div className="chart-sub">kW — IT · Refroidissement · Énergie récupérable (stack séparé)</div>
       <div className="ch"><Bar data={data} options={options} /></div>
     </div>
   )
@@ -47,7 +40,7 @@ export function EnergyChart({ results }) {
 // Compare les émissions CO2 par technologie et par scénario électrique
 export function CO2Chart({ allResults }) {
   const mixes   = [...new Set(allResults.map(r => r.mix_scenario))]
-  const technos = [...new Set(allResults.map(r => r.techno))]
+  const technos = TECHNO_ORDER.filter(t => allResults.some(r => r.techno === t))
   const data = {
     labels: mixes.map(m => m.replace('Mix ', '')),
     datasets: technos.map(t => ({
@@ -77,7 +70,7 @@ export function ROIChart({ results }) {
   const years = Array.from({ length: 11 }, (_, i) => i)
   const data = {
     labels: years.map(a => `An ${a}`),
-    datasets: results.map(r => ({
+    datasets: TECHNO_ORDER.filter(t => results.some(r => r.techno === t)).map(t => { const r = results.find(x => x.techno === t); return ({
       label: r.techno,
       borderColor: TC[r.techno],
       backgroundColor: `${TC[r.techno]}10`,
@@ -88,7 +81,7 @@ export function ROIChart({ results }) {
         ((r.e_totale?.valeur || 0) * 8760 * 0.15) * a -
         (r.economie_annuelle?.valeur || 0) * a
       )
-    }))
+    })})
   }
   const options = {
     ...CHART_BASE,
