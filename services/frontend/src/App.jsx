@@ -12,7 +12,7 @@ export default function App() {
 
   const referentiel = useReferentiel()
   const { results, loading, calculate } = useCalculate()
-  const rtData  = useRT(tab === 'rt')
+  const rtData  = useRT(true) 
   const history = useHistory(tab === 'hist')
   const { text: aiText, streaming: aiStreaming } = useStreamReco(aiPayload, aiTrigger)
 
