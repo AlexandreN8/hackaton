@@ -1,0 +1,40 @@
+{
+  "lowercaseOutputName": true,
+  "lowercaseOutputLabelNames": true,
+  "whitelistObjectNames": [
+    "kafka.network:type=*",
+    "kafka.server:type=*",
+    "kafka.controller:type=*",
+    "kafka.broker:type=*"
+  ],
+  "rules": [
+    {
+      "pattern": "kafka.network<type=(.+), name=(.+), clientId=(.+), brokerid=(.+)><value=(.+)>:",
+      "name": "kafka_network_$1_$2",
+      "labels": {
+        "clientId": "$3",
+        "brokerid": "$4"
+      }
+    },
+    {
+      "pattern": "kafka.server<type=(.+), name=(.+), clientId=(.+), brokerid=(.+)><value=(.+)>:",
+      "name": "kafka_server_$1_$2",
+      "labels": {
+        "clientId": "$3",
+        "brokerid": "$4"
+      }
+    },
+    {
+      "pattern": "kafka.controller<type=(.+), name=(.+)><value=(.+)>:",
+      "name": "kafka_controller_$1_$2"
+    },
+    {
+      "pattern": "kafka.server<type=(.+), name=(.+), topic=(.+), partition=(.+)><value=(.+)>:",
+      "name": "kafka_server_$1_$2",
+      "labels": {
+        "topic": "$3",
+        "partition": "$4"
+      }
+    }
+  ]
+}
