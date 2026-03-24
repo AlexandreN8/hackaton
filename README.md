@@ -25,6 +25,20 @@ Le service `init` charge automatiquement le référentiel (4 technos, 6 mix éle
 | **API**       | http://localhost:8000      |
 | **Swagger**   | http://localhost:8000/docs |
 
+## Monitoring de notre architecture
+
+| Service              | URL                              | Description                        |
+| -------------------- | -------------------------------- | ---------------------------------- |
+| **Grafana**          | http://localhost:3000            | Dashboards Kafka, System (admin/admin) |
+| **Prometheus**       | http://localhost:9090            | Time-series database & metrics     |
+| **Kafka Exporter**   | http://localhost:9308/metrics    | Kafka broker metrics endpoint      |        |
+| **Node Exporter**    | http://localhost:9100/metrics    | System metrics (CPU, RAM, disk)    |
+
+### Dashboards Grafana
+
+- **Kafka Broker Monitoring** - Brokers, partitions, ISR, replicas, under-replicated
+- **System Dashboard** - CPU, RAM, network, disk monitoring
+
 ## Endpoints
 
 ### Temps réel (données capteurs Kafka)
