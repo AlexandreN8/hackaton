@@ -25,7 +25,7 @@ Le service `init` charge automatiquement le référentiel (4 technos, 6 mix éle
 | **API**       | http://localhost:8000      |
 | **Swagger**   | http://localhost:8000/docs |
 
-## Monitoring de notre architecture
+## Monitoring ( System + Kafka )
 
 | Service              | URL                              | Description                        |
 | -------------------- | -------------------------------- | ---------------------------------- |
