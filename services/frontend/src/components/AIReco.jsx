@@ -4,11 +4,9 @@ export default function AIReco({ pIt, results }) {
   const [displayedText, setDisplayedText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
-  // L'astuce anti-boucle : on crée un simple booléen au lieu de surveiller le tableau complet
   const hasResults = results && results.length > 0;
 
   useEffect(() => {
-    // Si on a des résultats, on déclenche l'IA
     if (hasResults) {
       const fakeAiResponse = `Analyse thermique et financière terminée.\n\nPour une charge IT de ${pIt || 50} kW, les technologies traditionnelles à air (AC) atteignent leurs limites d'efficacité énergétique et physique.\n\n💡 Recommandation Cisco i-Cooling :\nNous recommandons une transition immédiate vers l'Immersion Cooling (IC) ou le DLC. Ces technologies permettent d'absorber la haute densité des racks IA tout en divisant l'énergie de refroidissement par 10. Le surcoût initial (CAPEX) sera rapidement amorti grâce aux économies d'énergie massives (OPEX) générées.`;
 
@@ -27,10 +25,8 @@ export default function AIReco({ pIt, results }) {
 
       return () => clearInterval(typingInterval);
     }
-    // 👇 LA MAGIE EST ICI : on surveille 'hasResults' et 'pIt', pas le tableau 'results'
   }, [hasResults, pIt]);
 
-  // Sécurité pour cacher la boîte s'il n'y a pas encore de résultats
   if (!hasResults) return null;
 
   return (

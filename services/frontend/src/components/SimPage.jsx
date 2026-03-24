@@ -32,7 +32,6 @@ export default function SimPage({
 
   return (
     <>
-      {/* Config */}
       <div className="card fade-in">
         <div className="sec-hd" style={{ marginBottom: "14px" }}>
           Paramètres de simulation
@@ -91,7 +90,6 @@ export default function SimPage({
         </div>
       </div>
 
-      {/* Techno cards */}
       <div>
         <div className="sec-hd">Résultats — {activeMix || "—"}</div>
         <TechnoCards results={results} mix={activeMix} />
@@ -106,7 +104,6 @@ export default function SimPage({
           <ROIChart results={filtered} />
           <ScoreChart results={filtered} />
 
-          {/* Hypotheses */}
           <div className="card fade-in">
             <div className="sec-hd" style={{ marginBottom: "14px" }}>
               Périmètre & hypothèses

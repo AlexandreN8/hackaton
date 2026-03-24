@@ -1,10 +1,12 @@
-import React from 'react'
-import { TC_BG, f } from '../constants.js'
+import React from "react";
+import { TC_BG, f } from "../constants.js";
 
 export default function HistPage({ history }) {
   return (
     <div className="card fade-in">
-      <div className="sec-hd" style={{ marginBottom: '16px' }}>Historique des simulations</div>
+      <div className="sec-hd" style={{ marginBottom: "16px" }}>
+        Historique des simulations
+      </div>
       {history.length === 0 ? (
         <div className="empty">Aucune simulation enregistrée</div>
       ) : (
@@ -12,41 +14,51 @@ export default function HistPage({ history }) {
           <table>
             <thead>
               <tr>
-                {/* En-têtes du tableau avec les colonnes principales */}
-                {['Date', 'Techno', 'Mix', 'P_it', 'E totale', 'CO₂e', 'PUE', 'ROI'].map(h => (
+                {[
+                  "Date",
+                  "Techno",
+                  "Mix",
+                  "P_it",
+                  "E totale",
+                  "CO₂e",
+                  "PUE",
+                  "ROI",
+                ].map((h) => (
                   <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {history.map((h, i) => {
-                // Récupère les couleurs associées à la technologie
-                const colors = TC_BG[h.techno] || {}
+                const colors = TC_BG[h.techno] || {};
                 return (
                   <tr key={i}>
-                    <td style={{ fontSize: '11px', color: 'var(--text3)' }}>
-                      {new Date(h.created_at).toLocaleString('fr')}
+                    <td style={{ fontSize: "11px", color: "var(--text3)" }}>
+                      {new Date(h.created_at).toLocaleString("fr")}
                     </td>
                     <td>
-                      {/* Badge avec couleurs dynamiques selon la technologie */}
-                      <span className="h-badge" style={{ background: colors.bg, color: colors.color }}>
+                      <span
+                        className="h-badge"
+                        style={{ background: colors.bg, color: colors.color }}
+                      >
                         {h.techno}
                       </span>
                     </td>
-                    <td style={{ fontSize: '11px', color: 'var(--text3)' }}>{h.mix_scenario}</td>
+                    <td style={{ fontSize: "11px", color: "var(--text3)" }}>
+                      {h.mix_scenario}
+                    </td>
                     <td>{f(h.p_it_kw, 1)} kW</td>
                     <td>{f(h.e_totale_kw, 1)} kW</td>
                     <td>{f(h.co2e_kg, 2)} kg</td>
                     <td>{f(h.pue_calcule, 3)}</td>
-                    {/* Affiche "—" si pas de ROI calculé */}
-                    <td>{h.roi_annees ? f(h.roi_annees, 2) + ' ans' : '—'}</td>
+                    <td>{h.roi_annees ? f(h.roi_annees, 2) + " ans" : "—"}</td>
                   </tr>
-                )
+                );
               })}
             </tbody>
           </table>
         </div>
       )}
     </div>
-  )
+  );
 }
