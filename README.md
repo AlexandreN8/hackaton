@@ -1,3 +1,5 @@
+[![Build Check](https://github.com/AlexandreN8/hackaton/actions/workflows/build.yml/badge.svg)](https://github.com/AlexandreN8/hackaton/actions/workflows/build.yml)
+
 # i-Cooling - Hackathon Cisco
 
 Comparatif objectivé des technologies de refroidissement datacenter IA (AC, IC, RDHx, DLC) avec données capteurs en temps réel, score composite configurable et recommandation IA.
@@ -44,6 +46,20 @@ Le service `init` charge automatiquement le référentiel (4 technos, 6 mix éle
 | **Dashboard** | http://localhost:8080      |
 | **API**       | http://localhost:8000      |
 | **Swagger**   | http://localhost:8000/docs |
+
+## Monitoring ( System + Kafka )
+
+| Service              | URL                              | Description                        |
+| -------------------- | -------------------------------- | ---------------------------------- |
+| **Grafana**          | http://localhost:3000            | Dashboards Kafka, System (admin/admin) |
+| **Prometheus**       | http://localhost:9090            | Time-series database & metrics     |
+| **Kafka Exporter**   | http://localhost:9308/metrics    | Kafka broker metrics endpoint      |        |
+| **Node Exporter**    | http://localhost:9100/metrics    | System metrics (CPU, RAM, disk)    |
+
+### Dashboards Grafana
+
+- **Kafka Broker Monitoring** - Brokers, partitions, ISR, replicas, under-replicated
+- **System Dashboard** - CPU, RAM, network, disk monitoring
 
 ## Endpoints
 
