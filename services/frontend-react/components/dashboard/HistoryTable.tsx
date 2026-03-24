@@ -53,8 +53,12 @@ export default function HistoryTable({
       const res = await fetch(`${apiUrl}/history`);
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setHistory(data);
-    } catch {
+
+      // LA CORRECTION EST ICI : on extrait le tableau intelligemment
+      const rows = data.history || data || [];
+      setHistory(Array.isArray(rows) ? rows : []);
+    } catch (err) {
+      console.error("Erreur API History:", err);
       setError(true);
     } finally {
       setLoading(false);
@@ -133,7 +137,7 @@ export default function HistoryTable({
               <tbody>
                 {history.map((row, i) => (
                   <tr
-                    key={row.id}
+                    key={row.id || i}
                     className={`border-b border-border last:border-0 hover:bg-muted/30 transition-colors ${
                       i === 0 ? "bg-green-50/50 dark:bg-green-950/20" : ""
                     }`}
