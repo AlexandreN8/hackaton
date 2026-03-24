@@ -46,7 +46,7 @@ function PowerChart({ rackId, history, color }) {
       y: {
         display: true,
         min: 0,
-        ticks: { color: 'var(--text3)', font: { size: 9 }, maxTicksLimit: 2, callback: v => v === 0 ? '' : `${f(v,0)}kW` },
+        ticks: { color: '#F8FAFC', font: { size: 9 }, maxTicksLimit: 2, callback: v => v === 0 ? '' : `${f(v,0)}kW` },
         grid: { color: 'rgba(0,0,0,0.04)' },
         border: { display: false },
       }

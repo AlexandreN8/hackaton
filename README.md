@@ -1,5 +1,3 @@
-[![Build Check](https://github.com/AlexandreN8/hackaton/actions/workflows/build.yml/badge.svg)](https://github.com/AlexandreN8/hackaton/actions/workflows/build.yml)
-
 # i-Cooling - Hackathon Cisco
 
 Comparatif objectivé des technologies de refroidissement datacenter IA (AC, IC, RDHx, DLC) avec données capteurs en temps réel, score composite configurable et recommandation IA.
@@ -12,7 +10,27 @@ Comparatif objectivé des technologies de refroidissement datacenter IA (AC, IC,
 - **Frontend** : React + Vite + Chart.js - dashboard responsive mobile/desktop
 - **IA** : score composite multicritères configurable - service recommandation LLM (`/stream-reco`) architecturé, à connecter
 
+<img src="livrables/architecture.png" alt="Logo" width="800"  />
+
 ## Démarrage
+
+### Dataset
+
+Générer le dataset de simulation (modèle physique réaliste) :
+
+```bash
+cd data
+python genset_sync.py
+# → écrit data/dataset_ia_72h_sync.jsonl (72h à 2s/mesure × 4 racks)
+```
+
+Modèle physique :
+
+- `p_it_kw = baseline + P_cpu_max × cpu% + P_gpu_max × gpu%`
+- Inertie thermique du 1er ordre par composant et techno (τ_gpu AC=120s, IC=60s)
+- Machine à états partagée idle/training - transitions progressives (~4 min idle, ~10 min training)
+
+### Lancer les conteneurs Docker
 
 ```bash
 cp .env.example .env
@@ -26,20 +44,6 @@ Le service `init` charge automatiquement le référentiel (4 technos, 6 mix éle
 | **Dashboard** | http://localhost:8080      |
 | **API**       | http://localhost:8000      |
 | **Swagger**   | http://localhost:8000/docs |
-
-## Monitoring ( System + Kafka )
-
-| Service              | URL                              | Description                        |
-| -------------------- | -------------------------------- | ---------------------------------- |
-| **Grafana**          | http://localhost:3000            | Dashboards Kafka, System (admin/admin) |
-| **Prometheus**       | http://localhost:9090            | Time-series database & metrics     |
-| **Kafka Exporter**   | http://localhost:9308/metrics    | Kafka broker metrics endpoint      |        |
-| **Node Exporter**    | http://localhost:9100/metrics    | System metrics (CPU, RAM, disk)    |
-
-### Dashboards Grafana
-
-- **Kafka Broker Monitoring** - Brokers, partitions, ISR, replicas, under-replicated
-- **System Dashboard** - CPU, RAM, network, disk monitoring
 
 ## Endpoints
 
@@ -95,22 +99,6 @@ Le service `init` charge automatiquement le référentiel (4 technos, 6 mix éle
 ```
 
 > Les 4 racks tournent le **même workload simultanément** - règle de comparaison obligatoire du sujet. Les températures diffèrent selon la techno de refroidissement.
-
-## Dataset
-
-Générer le dataset de simulation (modèle physique réaliste) :
-
-```bash
-cd data
-python genset_sync.py
-# → écrit data/dataset_ia_72h_sync.jsonl (72h à 2s/mesure × 4 racks)
-```
-
-Modèle physique :
-
-- `p_it_kw = baseline + P_cpu_max × cpu% + P_gpu_max × gpu%`
-- Inertie thermique du 1er ordre par composant et techno (τ_gpu AC=120s, IC=60s)
-- Machine à états partagée idle/training - transitions progressives (~4 min idle, ~10 min training)
 
 ## Tests
 
