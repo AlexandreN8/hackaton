@@ -1,3 +1,5 @@
+[![Build Check](https://github.com/AlexandreN8/hackaton/actions/workflows/build.yml/badge.svg)](https://github.com/AlexandreN8/hackaton/actions/workflows/build.yml)
+
 # i-Cooling - Hackathon Cisco
 
 Comparatif objectivé des technologies de refroidissement datacenter IA (AC, IC, RDHx, DLC) avec données capteurs en temps réel, score composite configurable et recommandation IA.
