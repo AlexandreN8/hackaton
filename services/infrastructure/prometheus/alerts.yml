@@ -1,0 +1,110 @@
+# Alertes Prometheus pour Kafka
+
+groups:
+  - name: kafka_alerts
+    interval: 30s
+    rules:
+      - alert: KafkaBrokerDown
+        expr: up{job="kafka"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: kafka
+        annotations:
+          summary: "Kafka Broker est DOWN"
+          description: "Le broker Kafka ({{ $labels.instance }}) est indisponible depuis plus de 1 minute"
+
+      - alert: KafkaHighLatency
+        expr: kafka_network_requestmetrics_total_time_ms > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: kafka
+        annotations:
+          summary: "Latence élevée détectée dans Kafka"
+          description: "Temps de réponse {{ $labels.request_type }} > 1000ms (valeur: {{ $value }}ms)"
+
+      - alert: UnderReplicatedPartitions
+        expr: kafka_server_replicamanager_under_replicated_partitions > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: kafka
+        annotations:
+          summary: "Partitions sous-répliquées détectées"
+          description: "{{ $value }} partitions ne sont pas correctement répliquées"
+
+      - alert: KafkaProducerErrors
+        expr: rate(kafka_server_brokertopicmetrics_failed_produce_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: kafka
+        annotations:
+          summary: "Erreurs de production Kafka détectées"
+          description: "Topic {{ $labels.topic }} - Taux d'erreur: {{ $value }} msg/sec"
+
+      - alert: ConsumerLag
+        expr: kafka_server_brokertopicmetrics_fetch_consumer_total_time_ms > 5000
+        for: 10m
+        labels:
+          severity: warning
+          component: kafka
+        annotations:
+          summary: "Lag consommateur élevé"
+          description: "Topic {{ $labels.topic }} - Latence consommateur: {{ $value }}ms"
+
+      - alert: ControllerDown
+        expr: kafka_controller_kafkacontroller_active_controllers != 1
+        for: 1m
+        labels:
+          severity: critical
+          component: kafka
+        annotations:
+          summary: "Contrôleur Kafka indisponible"
+          description: "Nombre de contrôleurs actifs: {{ $value }} (devrait être 1)"
+
+      - alert: ZookeeperDown
+        expr: up{job="zookeeper"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: zookeeper
+        annotations:
+          summary: "Zookeeper est DOWN"
+          description: "Zookeeper ({{ $labels.instance }}) est indisponible depuis plus de 1 minute"
+
+      - alert: ProducerThroughputDrop
+        expr: rate(kafka_server_brokertopicmetrics_messages_in_total[5m]) < 1
+        for: 5m
+        labels:
+          severity: warning
+          component: kafka
+        annotations:
+          summary: "Baisse de débit détectée"
+          description: "Topic {{ $labels.topic }} - Débit: {{ $value }} msg/sec"
+
+      - alert: Topic_sensors_raw_Issues
+        expr: |
+          kafka_server_brokertopicmetrics_failed_produce_total{topic="sensors.raw"} > 0 
+          or kafka_server_brokertopicmetrics_fetch_consumer_total_time_ms{topic="sensors.raw"} > 2000
+        for: 2m
+        labels:
+          severity: warning
+          component: kafka
+          topic: sensors.raw
+        annotations:
+          summary: "⚠️ Problème topic sensors.raw"
+          description: "Vérifier la consommation de données capteurs (production ou latence)"
+
+      - alert: Topic_sensors_predicted_Issues
+        expr: |
+          rate(kafka_server_brokertopicmetrics_messages_in_total{topic="sensors.predicted"}[5m]) == 0
+        for: 5m
+        labels:
+          severity: info
+          component: kafka
+          topic: sensors.predicted
+        annotations:
+          summary: "ℹ️ Pas de données sur sensors.predicted"
+          description: "Service IA n'envoie pas de prédictions (peut être normal si service inactif)"
