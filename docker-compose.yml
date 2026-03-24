@@ -49,6 +49,7 @@ services:
         condition: service_healthy
     ports:
       - "9092:9092"
+      - "9999:9999"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -57,6 +58,10 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # JMX Metrics
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: kafka
+      KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Dcom.sun.management.jmxremote.rmi.port=9999
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
       interval: 10s
@@ -180,8 +185,128 @@ services:
     networks:
       - hackathon_net
 
+# Infrastructure Monitoring
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: hackathon_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./services/infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./services/infrastructure/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    depends_on:
+      - kafka
+    networks:
+      - hackathon_net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: hackathon_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./services/infrastructure/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./services/infrastructure/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - hackathon_net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka-jmx:
+    # Kafka avec JMX enabled (pour monitoring futur)
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: hackathon_kafka_jmx
+    restart: unless-stopped
+    ports:
+      - "9997:9999"
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BROKER_ID: 99
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-jmx:29092
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: localhost
+    networks:
+      - hackathon_net
+
+  zookeeper-jmx:
+    # Zookeeper avec JMX enabled (pour monitoring futur)
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: hackathon_zookeeper_jmx
+    restart: unless-stopped
+    ports:
+      - "9998:9998"
+    depends_on:
+      - zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_JMX_PORT: 9998
+    networks:
+      - hackathon_net
+
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: hackathon_node_exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - hackathon_net
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: hackathon_kafka_exporter
+    restart: unless-stopped
+    ports:
+      - "9308:9308"
+    environment:
+      KAFKA_SERVER: kafka:29092
+    depends_on:
+      - kafka
+    networks:
+      - hackathon_net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9308/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   hackathon_net:
